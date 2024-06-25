@@ -31,11 +31,11 @@ if uploaded_file is not None:
 
     # Display extracted text (optional)
     st.subheader("Extracted Text")
-    st.write(pdf_text[:2000] + '...')  # Display first 2000 characters for preview
+    st.write(pdf_text[:20000] + '...')  # Display first 20000 characters for preview
 
     # Summarize the extracted text
     summarizer = load_summarizer()
-    summary = summarizer(pdf_text, max_length=150, min_length=30, do_sample=False)[0]['summary_text']
+    summary = summarizer(pdf_text, max_length=1500, min_length=30, do_sample=False)[0]['summary_text']
 
     # Display the summary
     st.subheader("Summary")
