@@ -3,15 +3,16 @@ import fitz  # PyMuPDF
 from transformers import pipeline
 
 # Function to extract text from a PDF file
-def extract_text_from_pdf(pdf_file):
-    doc = fitz.open(pdf_file)
+def extract_text_from_pdf(file_bytes):
+    # Open the PDF from bytes
+    doc = fitz.open(stream=file_bytes, filetype="pdf")
     text = ""
     for page in doc:
         text += page.get_text()
     return text
 
 # Load the summarization model
-@st.cache(allow_output_mutation=True)
+@st.cache_resource
 def load_summarizer():
     return pipeline("summarization")
 
@@ -22,8 +23,11 @@ st.title("PDF Summarizer AI")
 uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
 
 if uploaded_file is not None:
+    # Read the file into bytes
+    file_bytes = uploaded_file.read()
+
     # Extract text from the PDF
-    pdf_text = extract_text_from_pdf(uploaded_file)
+    pdf_text = extract_text_from_pdf(file_bytes)
 
     # Display extracted text (optional)
     st.subheader("Extracted Text")
