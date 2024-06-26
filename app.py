@@ -1,20 +1,16 @@
 import streamlit as st
 import fitz  # PyMuPDF
+import re
 from transformers import pipeline
-from nltk.tokenize import sent_tokenize
-import nltk
-import os
+from nltk.tokenize.punkt import PunktSentenceTokenizer, PunktTrainer
 
-# Ensure NLTK resources are available
-nltk_data_path = 'nltk_data'
-if not os.path.exists(nltk_data_path):
-    os.makedirs(nltk_data_path)
-nltk.data.path.append(nltk_data_path)
+# Directly include the punkt data
+punkt_data = """
+<...>  # Paste the content of the punkt data file here
+"""
 
-try:
-    nltk.data.find('tokenizers/punkt')
-except LookupError:
-    nltk.download('punkt', download_dir=nltk_data_path)
+# Initialize the tokenizer
+tokenizer = PunktSentenceTokenizer(punkt_data)
 
 # Function to extract text and headings from a PDF file
 def extract_text_and_headings_from_pdf(file_bytes):
@@ -39,7 +35,7 @@ def load_summarizer():
 
 # Function to summarize text
 def summarize_text(text, summarizer, max_chunk_size=1000):
-    sentences = sent_tokenize(text)
+    sentences = tokenizer.tokenize(text)
     chunks = []
     current_chunk = ""
 
