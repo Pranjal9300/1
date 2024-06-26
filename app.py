@@ -17,8 +17,7 @@ def is_bold(font):
     return any(indicator in font for indicator in bold_indicators)
 
 # Function to extract text and headings from a range of pages in a PDF file
-def extract_text_and_headings_from_pdf(file_bytes, start_page, end_page):
-    doc = fitz.open(stream=file_bytes, filetype="pdf")
+def extract_text_and_headings_from_pdf(doc, start_page, end_page):
     text = ""
     headings = []
     for page_number in range(start_page, end_page + 1):
@@ -66,7 +65,8 @@ st.title("PDF Summarizer AI")
 uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
 
 if uploaded_file is not None:
-    doc = fitz.open(stream=uploaded_file.read(), filetype="pdf")
+    file_bytes = uploaded_file.read()
+    doc = fitz.open(stream=file_bytes, filetype="pdf")
     num_pages = len(doc)
     
     # Input for start and end page numbers
@@ -77,8 +77,7 @@ if uploaded_file is not None:
         st.error("End page must be greater than or equal to start page")
     else:
         # Extract text and headings from the specified range of pages of the PDF
-        file_bytes = uploaded_file.read()
-        pdf_text, headings = extract_text_and_headings_from_pdf(file_bytes, start_page, end_page)
+        pdf_text, headings = extract_text_and_headings_from_pdf(doc, start_page, end_page)
 
         # User options
         options = st.multiselect(
