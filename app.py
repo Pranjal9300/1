@@ -1,31 +1,51 @@
 import streamlit as st
 import fitz  # PyMuPDF
+import re
 from transformers import pipeline
+from nltk.tokenize import sent_tokenize
 
-# Function to extract text from a PDF file
-def extract_text_from_pdf(file_bytes):
+# Download NLTK resources
+import nltk
+nltk.download('punkt')
+
+# Function to extract text and headings from a PDF file
+def extract_text_and_headings_from_pdf(file_bytes):
     doc = fitz.open(stream=file_bytes, filetype="pdf")
     text = ""
-    for page in doc:
-        text += page.get_text()
-    return text
+    headings = []
+    for page_num, page in enumerate(doc, start=1):
+        blocks = page.get_text("dict")["blocks"]
+        for block in blocks:
+            if block['type'] == 0:  # text block
+                for line in block['lines']:
+                    span = line['spans'][0]
+                    if span['size'] > 12:  # assuming headings have larger font size
+                        headings.append((span['text'], page_num))
+                    text += span['text'] + " "
+    return text, headings
 
 # Load the summarization model
 @st.cache_resource
 def load_summarizer():
     return pipeline("summarization")
 
-# Function to split text into chunks
-def split_text_into_chunks(text, chunk_size=1000):
+# Function to summarize text
+def summarize_text(text, summarizer, max_chunk_size=1000):
+    sentences = sent_tokenize(text)
     chunks = []
-    while len(text) > chunk_size:
-        split_point = text.rfind('.', 0, chunk_size)
-        if split_point == -1:
-            split_point = chunk_size
-        chunks.append(text[:split_point+1])
-        text = text[split_point+1:]
-    chunks.append(text)
-    return chunks
+    current_chunk = ""
+
+    for sentence in sentences:
+        if len(current_chunk) + len(sentence) <= max_chunk_size:
+            current_chunk += " " + sentence
+        else:
+            chunks.append(current_chunk)
+            current_chunk = sentence
+    if current_chunk:
+        chunks.append(current_chunk)
+
+    summaries = [summarizer(chunk, max_length=150, min_length=30, do_sample=False)[0]['summary_text'] for chunk in chunks]
+    return ' '.join(summaries)
 
 # Title of the app
 st.title("PDF Summarizer AI")
@@ -37,19 +57,18 @@ if uploaded_file is not None:
     # Read the file into bytes
     file_bytes = uploaded_file.read()
 
-    # Extract text from the PDF
-    pdf_text = extract_text_from_pdf(file_bytes)
+    # Extract text and headings from the PDF
+    pdf_text, headings = extract_text_and_headings_from_pdf(file_bytes)
 
-    # Display extracted text (optional)
-    st.subheader("Extracted Text")
-    st.write(pdf_text[:2000] + '...')  # Display first 2000 characters for preview
+    # Display extracted headings with page numbers
+    st.subheader("Extracted Headings")
+    for heading, page_num in headings:
+        st.write(f"{heading} (Page {page_num})")
 
     # Summarize the extracted text
     summarizer = load_summarizer()
-    chunks = split_text_into_chunks(pdf_text)
-    summaries = [summarizer(chunk, max_length=150, min_length=30, do_sample=False)[0]['summary_text'] for chunk in chunks]
-    final_summary = ' '.join(summaries)
+    summary = summarize_text(pdf_text, summarizer)
 
     # Display the summary
     st.subheader("Summary")
-    st.write(final_summary)
+    st.write(summary)
