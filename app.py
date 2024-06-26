@@ -11,6 +11,11 @@ punkt_data = """
 # Initialize the tokenizer
 tokenizer = PunktSentenceTokenizer(punkt_data)
 
+# Function to check if a font is bold
+def is_bold(font):
+    bold_indicators = ['bold', 'Bold', 'BOLD']
+    return any(indicator in font for indicator in bold_indicators)
+
 # Function to extract text and headings from a specific page of a PDF file
 def extract_text_and_headings_from_pdf(file_bytes, page_number):
     doc = fitz.open(stream=file_bytes, filetype="pdf")
@@ -24,10 +29,11 @@ def extract_text_and_headings_from_pdf(file_bytes, page_number):
     for block in blocks:
         if block['type'] == 0:  # text block
             for line in block['lines']:
-                span = line['spans'][0]
-                if span['size'] > 12:  # assuming headings have larger font size
-                    headings.append((span['text'], page_number))
-                text += span['text'] + " "
+                for span in line['spans']:
+                    font = span['font']
+                    if is_bold(font) or span['size'] > 12:  # assuming headings have larger font size or are bold
+                        headings.append((span['text'], page_number))
+                    text += span['text'] + " "
     return text, headings
 
 # Load the summarization model
