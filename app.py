@@ -1,12 +1,20 @@
 import streamlit as st
 import fitz  # PyMuPDF
-import re
 from transformers import pipeline
 from nltk.tokenize import sent_tokenize
-
-# Download NLTK resources
 import nltk
-nltk.download('punkt')
+import os
+
+# Ensure NLTK resources are available
+nltk_data_path = 'nltk_data'
+if not os.path.exists(nltk_data_path):
+    os.makedirs(nltk_data_path)
+nltk.data.path.append(nltk_data_path)
+
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    nltk.download('punkt', download_dir=nltk_data_path)
 
 # Function to extract text and headings from a PDF file
 def extract_text_and_headings_from_pdf(file_bytes):
